@@ -7,6 +7,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Enumeration;
 import java.util.Properties;
 
@@ -50,28 +52,11 @@ public class ApparelObjectFactory {
 
 	private Apparel getBrandObject(String brandName) {
 		Apparel brandObject = null;
-		brandName = brandName.trim();
+		brandName = brandName.trim().replaceAll(" ", "_%2_");
+		String className = readFromPropertyFile("classMapping.properties", getCode(brandName));
+		Object obj = convertClassNameToInstance(className, brandName, getCode(brandName));
 
-		switch (brandName) {
-		case "Wrangler":
-			brandObject = new Wrangler("Wrangler", getCode(brandName));
-			break;
-		case "Arrow":
-			brandObject = new Arrow("Arrow", getCode(brandName));
-			break;
-		case "Vero Moda":
-			brandObject = new VeroModa("Vero Moda", getCode(brandName));
-			break;
-		case "UCB":
-			brandObject = new UCB("UCB", getCode(brandName));
-			break;
-		case "Adidas":
-			brandObject = new Adidas("Adidas", getCode(brandName));
-			break;
-		case "Provogue":
-			brandObject = new Provogue("Provogue", getCode(brandName));
-			break;
-		}
+		brandObject = obj instanceof Apparel ? (Apparel) obj : null;
 
 		return brandObject;
 	}
@@ -79,77 +64,40 @@ public class ApparelObjectFactory {
 	private ProductCategory getProductObject(String productName) {
 		ProductCategory productObject = null;
 		productName = productName.trim();
-		switch (productName) {
-		case "Shirts":
-			productObject = new Shirt("Shirts", getCode(productName));
-			break;
-		case "Casuals":
-			productObject = new Casuals("Casuals", getCode(productName));
-			break;
-		case "Dresses":
-			productObject = new Dresses("Dresses", getCode(productName));
-			break;
-		case "Footwear":
-			productObject = new Footwear("Footwear", getCode(productName));
-			break;
-		case "Jeans":
-			productObject = new Jeans("Jeans", getCode(productName));
-			break;
-		case "Trousers":
-			productObject = new Trousers("Trousers", getCode(productName));
-			break;
 
-		}
+		String className = readFromPropertyFile("classMapping.properties", productName);
+		Object obj = convertClassNameToInstance(className, productName, getCode(productName));
+
+		productObject = obj instanceof ProductCategory ? (ProductCategory) obj : null;
 		return productObject;
 	}
 
 	private ApparelCategory getCategoryObject(String categoryName) {
 		ApparelCategory categoryObject = null;
-		switch (categoryName) {
-		case "Men":
-			categoryObject = new Men("Men", getCode(categoryName));
-			break;
-		case "Women":
-			categoryObject = new Men("women", categoryName);
-			break;
-		}
+
+		String className = readFromPropertyFile("classMapping.properties", categoryName);
+		Object obj = convertClassNameToInstance(className, categoryName, getCode(categoryName));
+
+		categoryObject = obj instanceof ApparelCategory ? (ApparelCategory) obj : null;
 		return categoryObject;
 	}
 
 	private String getCode(String name) {
 		name = name.trim().replaceAll(" ", "_%2_");
-		String code = "";
-		try {
-			File file = new File("productAndCategoryMap.properties");
-			FileInputStream fileInput = new FileInputStream(file);
-			Properties properties = new Properties();
-			properties.load(fileInput);
-			fileInput.close();
-			Enumeration enuKeys = properties.keys();
-			while (enuKeys.hasMoreElements()) {
-				String key = (String) enuKeys.nextElement();
-				String value = properties.getProperty(key);
-				if (key.equalsIgnoreCase(name)) {
-					code = value;
-					break;
-				}
-			}
-
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (NumberFormatException e) {
-			e.printStackTrace();
-		}
-		return code;
+		return readFromPropertyFile("productAndCategoryMap.properties", name);
 	}
-	
-	public String getClass(String code){
-		String className = "";
+
+	public String getClass(String code) {
 		code = code.trim();
+		return readFromPropertyFile("classMapping.properties", code);
+	}
+
+	private String readFromPropertyFile(String fileName, String searchString) {
+		String output = "";
+		fileName = fileName.trim();
+		searchString = searchString.trim();
 		try {
-			File file = new File("classMapping.properties");
+			File file = new File(fileName);
 			FileInputStream fileInput = new FileInputStream(file);
 			Properties properties = new Properties();
 			properties.load(fileInput);
@@ -158,8 +106,8 @@ public class ApparelObjectFactory {
 			while (enuKeys.hasMoreElements()) {
 				String key = (String) enuKeys.nextElement();
 				String value = properties.getProperty(key);
-				if (key.equalsIgnoreCase(code)) {
-					className = value;
+				if (key.equalsIgnoreCase(searchString)) {
+					output = value;
 					break;
 				}
 			}
@@ -171,7 +119,24 @@ public class ApparelObjectFactory {
 		} catch (NumberFormatException e) {
 			e.printStackTrace();
 		}
-		
-		return className;
+		return output;
+	}
+
+	private Object convertClassNameToInstance(String className, String name, String code) {
+		Object obj = null;
+		Class<?> clazz;
+		try {
+			clazz = Class.forName(className);
+			Constructor<?> ctor = clazz.getConstructor(String.class, String.class);
+			obj = ctor.newInstance(new Object[] { name, code });
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+				| InvocationTargetException e) {
+			e.printStackTrace();
+		} catch (NoSuchMethodException | SecurityException e) {
+			e.printStackTrace();
+		}
+		return obj;
 	}
 }

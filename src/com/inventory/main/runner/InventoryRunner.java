@@ -13,13 +13,6 @@ import com.inventory.bill.calculator.BillCalculator;
  */
 public class InventoryRunner {
 	public static void main(String[] args) {
-		new InventoryRunner().runner();
-	}
-
-	/**
-	 * 
-	 */
-	private void runner() {
 		int input = 0;
 		Scanner in = new Scanner(System.in);
 		input = in.nextInt();
@@ -35,8 +28,16 @@ public class InventoryRunner {
 		for (int i = 0; i < orders; i++) {
 			ordersData[i] = in.nextLine();
 		}
+		new InventoryRunner().runner(priceSheet, ordersData);
+	}
 
+	/**
+	 * 
+	 */
+	public int[] runner(String[] priceSheet, String[] ordersData) {
+		int[] result = new int[ordersData.length];
 		float bill = 0;
+		int counter = 0;
 		for (String order : ordersData) {
 			bill = 0;
 			for (String orderID : order.split(",")) {
@@ -45,8 +46,9 @@ public class InventoryRunner {
 						priceSheet[((int) Integer.parseInt(orderID)) - 1].split(",")[2].trim(),
 						Float.parseFloat(priceSheet[((int) Integer.parseInt(orderID)) - 1].split(",")[3].trim()));
 			}
-			System.out.println((int)bill);
+			System.out.println((int) bill);
+			result[counter] = (int) bill;
 		}
+		return result;
 	}
-
 }
